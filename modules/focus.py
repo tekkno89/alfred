@@ -20,6 +20,7 @@ def get_plist_file(plist_file):
 
     return settings_file
 
+
 # Checks the NC plist to see if DND is enabled
 def check_dnd_stat(settings):
     dnd_val = plistlib.loads(settings['dnd_prefs'])
@@ -33,9 +34,9 @@ def set_dnd(status):
     deserial_dnd = plistlib.loads(settings['dnd_prefs'])
 
     if (status == 'on') & (dnd_stat is True):
-        print('DND is already enabled')
+        sys.exit('DND is already enabled')
     elif (status == 'off') & (dnd_stat is False):
-        print('DND is already disabled')
+        sys.exit('DND is already disabled')
     elif status == 'on':
         user_pref_val = {'enabled': True, 'date': datetime.now(), 'reason': 1}
         deserial_dnd['userPref'] = user_pref_val
@@ -49,25 +50,19 @@ def set_dnd(status):
     subprocess.run(['/usr/bin/killall', 'usernoted'])
 
 
-def hide_dock(state):
-    if state == 'on':
-        subprocess.run(['/usr/bin/defaults', 'write', 'com.apple.dock.plist', 'autohide', '-bool', 'TRUE'])
-    elif state == 'off':
-        subprocess.run(['/usr/bin/defaults', 'write', 'com.apple.dock.plist', 'autohide', '-bool', 'FALSE'])
-    else:
-        sys.exit('Status not recognized')
-
-    subprocess.run(['/usr/bin/killall', 'Dock'])
+# Decided to use osascript because restarting dock will launch all the app windows you have hidden
+def hide_dock():
+    subprocess.run(['osascript', '-e', 'tell application "System Events" to set autohide of dock preferences to not (autohide of dock preferences)'])
 
 
 def enable_focus():
     set_dnd('on')
-    hide_dock('on')
+    hide_dock()
 
 
 def disable_focus():
     set_dnd('off')
-    hide_dock('off')
+    hide_dock()
 
 
 def focus_daemon(min):
