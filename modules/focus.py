@@ -50,7 +50,7 @@ def set_dnd(status):
     subprocess.run(['/usr/bin/killall', 'usernoted'])
 
 
-# Decided to use osascript because restarting dock will launch all the app windows you have hidden
+# Decided to use osascript because restarting dock will launch all the app windows you have minimized
 def hide_dock():
     subprocess.run(['osascript', '-e', 'tell application "System Events" to set autohide of dock preferences to not (autohide of dock preferences)'])
 
