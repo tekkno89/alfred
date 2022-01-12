@@ -20,7 +20,7 @@ def get_plist_file(plist_file):
 
     return settings_file
 
-
+# Checks the NC plist to see if DND is enabled
 def check_dnd_stat(settings):
     dnd_val = plistlib.loads(settings['dnd_prefs'])
 
@@ -59,17 +59,21 @@ def hide_dock(state):
 
     subprocess.run(['/usr/bin/killall', 'Dock'])
 
+
 def enable_focus():
     set_dnd('on')
     hide_dock('on')
+
 
 def disable_focus():
     set_dnd('off')
     hide_dock('off')
 
+
 def focus_daemon(min):
     time.sleep(min)
     disable_focus()
+
 
 @click.command()
 @click.argument('length')
