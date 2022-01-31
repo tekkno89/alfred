@@ -6,8 +6,6 @@ import click
 import threading
 import time
 from datetime import datetime
-from pprint import pprint
-
 
 home_dir = os.getenv('HOME')
 notify_config = home_dir + '/Library/Preferences/com.apple.ncprefs.plist'
