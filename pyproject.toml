@@ -7,6 +7,8 @@ authors = ["Tyler Knotek <tekkno89@gmail.com>"]
 [tool.poetry.dependencies]
 python = "^3.8"
 click = "^8.0.3"
+slack-bolt = "^1.18.0"
+flask = "^2.3.2"
 
 [tool.poetry.dev-dependencies]
 
