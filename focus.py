@@ -5,16 +5,19 @@ import sys
 import subprocess
 import click
 import time
-#from datetime import datetime
 
-home_dir = os.getenv('HOME')
-pid_file = '/tmp/alfred_focus.pid'
+
+pid_file = '$HOME/.alfred/alfred_focus.pid'
 shortcut_name = 'macos-focus-mode'
 
 
 # Make sure the short cut is installed, have to use this method for osx 13
 def check_shortcut_installed():
-    pass
+    shortcuts = subprocess.run(['shortcuts','list'], capture_output=True, text=True).stdout.split('\n')
+    if shortcut_name in shortcuts:
+        return
+    else:
+        raise Exception("Shortcut not installed. Please see Focus docs for instructions.")
 
 
 def set_dnd(status, length=30):
@@ -35,6 +38,8 @@ def toggle_dock():
 
 def enable_focus(length):
     """Set Focus for X minutes"""
+    check_shortcut_installed()
+
     set_dnd('on', length)
     toggle_dock()
     pid = os.fork()
