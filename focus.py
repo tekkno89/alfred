@@ -7,7 +7,7 @@ import click
 import time
 
 
-pid_file = '$HOME/.alfred/alfred_focus.pid'
+pid_file = f'{os.environ["HOME"]}/.alfred/alfred_focus.pid'
 shortcut_name = 'macos-focus-mode'
 
 
