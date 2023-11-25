@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "9883f987371b6f1f2587dcedc207e1dfbd19ad9465b00082d002fa3a272c34ce"
+            "sha256": "9f6434fc628e568d5edf8b70a5f86e441593493156ad71fa4ede9e3eadac6def"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -24,6 +24,39 @@
             "index": "pypi",
             "markers": "python_version >= '3.7'",
             "version": "==8.1.7"
+        },
+        "pyobjc-core": {
+            "hashes": [
+                "sha256:166666b5c380a49e8aa1ad1dda978c581e29a00703d82203216f3c65a3f397a4",
+                "sha256:198a0360f64e4c0148eed07b42d1de0545f56c498c356d1d5524422bb3352907",
+                "sha256:2843ca32e86a01ccee67d7ad82a325ddd72d754929d1f2c0d96bc8741dc9af09",
+                "sha256:3dd0a7b3acd7e0b8ffd3f5331b29a3aaebe79a03323e61efeece38627a6020b3",
+                "sha256:61ea5112a672d21b5b0ed945778707c655b17c400672aef144705674c4b95499",
+                "sha256:99b72cda4593e0c66037b25a178f2bcc6efffb6d5d9dcd477ecca859a1f9ae8e",
+                "sha256:a886b9d2a93210cab4ae72601ab005ca6f627fa2f0cc62c43c03ef1405067a11"
+            ],
+            "markers": "python_version >= '3.8'",
+            "version": "==10.0"
+        },
+        "pyobjc-framework-cocoa": {
+            "hashes": [
+                "sha256:0187cba228976a45f41116c74aab079b64bacb3ffc3c886a4bd8e472bf9be581",
+                "sha256:0a23db9ab99e338e1d8a268d873cc15408f78cec9946308393ca2241820c18b8",
+                "sha256:723421eff4f59e4ca9a9bb8ec6dafbc0f778141236fa85a49fdd86732d58a74c",
+                "sha256:80c22a8fc7f085746d9cd222adeca8fe6790e3e6ad7eed5fc70b32aa87c10adb",
+                "sha256:a3c66fe56a5156a818fbf056c589f8140a5fdb1dcb1f1075cb34d3755474d900",
+                "sha256:a81dabdc40268591e3196087388e680c6570fed1b521df9b04733cb3ece0414e",
+                "sha256:bf9020e85ead569021b15272dcd90207aab6c754093f520b11d4210a2efbdd06"
+            ],
+            "markers": "python_version >= '3.8'",
+            "version": "==10.0"
+        },
+        "rumps": {
+            "hashes": [
+                "sha256:17fb33c21b54b1e25db0d71d1d793dc19dc3c0b7d8c79dc6d833d0cffc8b1596"
+            ],
+            "index": "pypi",
+            "version": "==0.4.0"
         }
     },
     "develop": {}
