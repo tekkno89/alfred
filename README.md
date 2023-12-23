@@ -29,4 +29,4 @@ If you use Bash shell you can run the following command in your terminal:
 echo PATH=$PATH:~/.alfred >> ~/.bashrc
 ```
 For zshell, use the following:
-echo PATH=$PATH:~/.alfred >> ~/.zshrc
+```echo PATH=$PATH:~/.alfred >> ~/.zshrc```
