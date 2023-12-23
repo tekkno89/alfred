@@ -10,7 +10,7 @@ from enum import Enum
 
 shortcut_name = 'macos-focus-mode'
 
-class FocusStatus(Enum):
+class FocusState(Enum):
     ON = 'on'
     OFF = 'off'
 
@@ -37,8 +37,8 @@ class Alfred(rumps.App):
             raise Exception("Shortcut not installed. Please see Alfred docs for instructions.")
 
 
-    def set_dnd(self, status: FocusStatus, length: int=30) -> None:
-        if status == FocusStatus.ON:
+    def set_dnd(self, status: FocusState, length: int=30) -> None:
+        if status == FocusState.ON:
             shortcut_cmd = f'shortcuts run {shortcut_name} <<< "on {length}"'
         else:
             shortcut_cmd = f'shortcuts run {shortcut_name} <<< "off"'
@@ -57,18 +57,18 @@ class Alfred(rumps.App):
         """Set Focus for X minutes"""
         self.check_shortcut_installed()
 
-        self.set_dnd(FocusStatus.ON, length)
+        self.set_dnd(FocusState.ON, length)
         self.toggle_dock()
 
 
-    def disable_focus(self, terminate: bool=False) -> None:
+    def disable_focus(self, terminate_focus: bool=False) -> None:
         # This is for terminating focus before time is up
-        if terminate:
+        if terminate_focus:
             pass
         else:
             sys.exit('Focus does not appear to be running')
 
-        self.set_dnd('off')
+        self.set_dnd(FocusState.OFF)
         self.toggle_dock()
 
 
