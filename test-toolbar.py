@@ -1,4 +1,3 @@
-import click
 import os
 import rumps
 import sys
@@ -8,15 +7,19 @@ from datetime import datetime
 
 
 home_dir = os.getenv('HOME')
-pid_file = '/tmp/alfred_focus.pid'
 shortcut_name = 'macos-focus-mode'
 
 class Alfred(rumps.App):
     def __init__(self):
-        super(Alfred, self).__init__('Alfred', icon='alfred_icon.png')
+        super(Alfred, self).__init__('Alfred', icon='assets/alfred_icon.png')
+
+        self.timer = rumps.Timer(self.on_tick, 1)
+        self.timer.stop()
+        self.timer.count = 0
+
         self.menu = [
             ('Focus',[
-                rumps.MenuItem('1 min', callback=self.enable_focus,),
+                rumps.MenuItem('1 min', callback=self.enable_focus),
                 rumps.MenuItem('10 min', callback=self.enable_focus),
                 rumps.MenuItem('15 min', callback=self.enable_focus),
                 rumps.MenuItem('30 min', callback=self.enable_focus) 
@@ -26,6 +29,16 @@ class Alfred(rumps.App):
     # Make sure the short cut is installed, have to use this method for osx 13
     def check_shortcut_installed(self):
         pass
+
+
+    def on_tick(self, sender):
+        time_left = sender.end - sender.count
+        mins, secs = divmod(time_left, 60)
+        sender.count += 1
+
+        if sender.count == sender.end:
+            self.disable_focus()
+            self.timer.stop()
 
 
     def set_dnd(self, status, length=30):
@@ -46,46 +59,17 @@ class Alfred(rumps.App):
 
     def enable_focus(self, length: rumps.MenuItem):
         """Set Focus for X minutes"""
-        if isinstance(length, rumps.MenuItem):
-            sleepy = int(length.title.split()[0])
-        else:
-            sleepy = int(length)
+        sleepy = int(length.title.split()[0])
 
         self.set_dnd('on', sleepy)
         self.toggle_dock()
-        pid = os.fork()
-
-        if pid == 0:
-            self.focus_daemon(sleepy, length)
-        elif pid > 0:
-            click.echo(f'Focus set for {sleepy} minute(s)')
-            self.track_focus_process(pid)
-            self.menu['Focus'][length.title].set_callback(None)
+        self.timer.end = sleepy * 60
+        self.timer.start()
 
 
-    def disable_focus(self, terminate=False):
-        # This is for terminating focus before time is up
-        if terminate:
-            if os.path.exists(pid_file):
-                with open(pid_file, 'r') as file:
-                    pid = file.read()
-                os.kill(int(pid), 9)
-                os.remove(pid_file)
-            else:
-                sys.exit('Focus does not appear to be running')
-
+    def disable_focus(self):
         self.set_dnd('off')
         self.toggle_dock()
-
-
-    def focus_daemon(self, min, menu_item):
-        time.sleep(min * 60)
-        self.disable_focus()
-
-
-    def track_focus_process(self, pid):
-        with open(pid_file, 'w') as file:
-            file.write(str(pid))
 
 
     # app = rumps.App('Alfred', icon='alfred_icon.png')
