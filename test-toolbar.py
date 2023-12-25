@@ -1,13 +1,19 @@
+#!/usr/bin/env python3
+
 import os
 import rumps
-import sys
 import subprocess
-import time
-from datetime import datetime
+from enum import Enum
 
 
 home_dir = os.getenv('HOME')
 shortcut_name = 'macos-focus-mode'
+
+
+class FocusState(Enum):
+    ON = 'on'
+    OFF = 'off'
+
 
 class Alfred(rumps.App):
     def __init__(self):
@@ -33,7 +39,7 @@ class Alfred(rumps.App):
 
     def on_tick(self, sender):
         time_left = sender.end - sender.count
-        mins, secs = divmod(time_left, 60)
+        # mins, secs = divmod(time_left, 60)
         sender.count += 1
 
         if sender.count == sender.end:
@@ -41,8 +47,8 @@ class Alfred(rumps.App):
             self.timer.stop()
 
 
-    def set_dnd(self, status, length=30):
-        if status == 'on':
+    def set_dnd(self, status: FocusState, length: int):
+        if status == FocusState.ON:
             shortcut_cmd = f'shortcuts run {shortcut_name} <<< "on {length}"'
         else:
             shortcut_cmd = f'shortcuts run {shortcut_name} <<< "off"'
@@ -61,24 +67,16 @@ class Alfred(rumps.App):
         """Set Focus for X minutes"""
         sleepy = int(length.title.split()[0])
 
-        self.set_dnd('on', sleepy)
+        self.set_dnd(FocusState.ON, sleepy)
         self.toggle_dock()
         self.timer.end = sleepy * 60
         self.timer.start()
 
 
     def disable_focus(self):
-        self.set_dnd('off')
+        self.set_dnd(FocusState.OFF, 0)
         self.toggle_dock()
 
-
-    # app = rumps.App('Alfred', icon='alfred_icon.png')
-    # quit_button = rumps.MenuItem('Quit')
-    # app.menu = [
-    #     ('Focus', 
-    #         [rumps.MenuItem('5 min', callback=enable_focus), '10 min', '30 min']), 
-    #     'TBD'
-    # ]
 
 if __name__ == "__main__":
     Alfred().run()
