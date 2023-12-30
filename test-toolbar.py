@@ -23,14 +23,26 @@ class Alfred(rumps.App):
         self.timer.stop()
         self.timer.count = 0
 
+        focus_lengths = [1, 5, 10, 15, 30, 45, 60, 90]
+        end_focus = rumps.MenuItem('End Focus', callback=self.disable_focus)
+        focus_options = [rumps.MenuItem(f'{length} min', callback=self.enable_focus) for length in focus_lengths]
+
         self.menu = [
-            ('Focus',[
-                rumps.MenuItem('1 min', callback=self.enable_focus),
-                rumps.MenuItem('10 min', callback=self.enable_focus),
-                rumps.MenuItem('15 min', callback=self.enable_focus),
-                rumps.MenuItem('30 min', callback=self.enable_focus) 
-            ])
+            {'Focus': [*focus_options, None, end_focus]},
         ]
+
+        # self.menu = [
+        #     ('Focus',[
+        #         rumps.MenuItem('1 min', callback=self.enable_focus),
+        #         rumps.MenuItem('10 min', callback=self.enable_focus),
+        #         rumps.MenuItem('15 min', callback=self.enable_focus),
+        #         rumps.MenuItem('30 min', callback=self.enable_focus),
+        #         None,
+        #         rumps.MenuItem('60 min', callback=self.enable_focus),
+        #         rumps.MenuItem('90 min', callback=self.enable_focus),    
+        #     ])
+        # ]
+
 
     # Make sure the short cut is installed, have to use this method for osx 13
     def check_shortcut_installed(self):
@@ -44,7 +56,6 @@ class Alfred(rumps.App):
 
         if sender.count == sender.end:
             self.disable_focus()
-            self.timer.stop()
 
 
     def set_dnd(self, status: FocusState, length: int):
@@ -73,9 +84,11 @@ class Alfred(rumps.App):
         self.timer.start()
 
 
-    def disable_focus(self):
+    def disable_focus(self, sender=None):
         self.set_dnd(FocusState.OFF, 0)
+        self.timer.stop()
         self.toggle_dock()
+        self.timer.count = 0 
 
 
 if __name__ == "__main__":
