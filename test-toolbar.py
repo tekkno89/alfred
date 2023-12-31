@@ -24,24 +24,12 @@ class Alfred(rumps.App):
         self.timer.count = 0
 
         focus_lengths = [1, 5, 10, 15, 30, 45, 60, 90]
-        end_focus = rumps.MenuItem('End Focus', callback=self.disable_focus)
-        focus_options = [rumps.MenuItem(f'{length} min', callback=self.enable_focus) for length in focus_lengths]
+        self.end_focus = rumps.MenuItem('End Focus', callback=self.disable_focus)
+        self.focus_options = [rumps.MenuItem(f'{length} min', callback=self.enable_focus) for length in focus_lengths]
 
         self.menu = [
-            {'Focus': [*focus_options, None, end_focus]},
+            {'Focus': [*self.focus_options, None, self.end_focus]},
         ]
-
-        # self.menu = [
-        #     ('Focus',[
-        #         rumps.MenuItem('1 min', callback=self.enable_focus),
-        #         rumps.MenuItem('10 min', callback=self.enable_focus),
-        #         rumps.MenuItem('15 min', callback=self.enable_focus),
-        #         rumps.MenuItem('30 min', callback=self.enable_focus),
-        #         None,
-        #         rumps.MenuItem('60 min', callback=self.enable_focus),
-        #         rumps.MenuItem('90 min', callback=self.enable_focus),    
-        #     ])
-        # ]
 
 
     # Make sure the short cut is installed, have to use this method for osx 13
@@ -50,7 +38,7 @@ class Alfred(rumps.App):
 
 
     def on_tick(self, sender):
-        time_left = sender.end - sender.count
+        # time_left = sender.end - sender.count
         # mins, secs = divmod(time_left, 60)
         sender.count += 1
 
@@ -80,6 +68,9 @@ class Alfred(rumps.App):
 
         self.set_dnd(FocusState.ON, sleepy)
         self.toggle_dock()
+
+        for item in self.focus_options:
+            item.set_callback(None)
         self.timer.end = sleepy * 60
         self.timer.start()
 
@@ -89,6 +80,8 @@ class Alfred(rumps.App):
         self.timer.stop()
         self.toggle_dock()
         self.timer.count = 0 
+        for item in self.focus_options:
+            item.set_callback(self.enable_focus)
 
 
 if __name__ == "__main__":
