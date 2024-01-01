@@ -26,9 +26,12 @@ class Alfred(rumps.App):
         focus_lengths = [1, 5, 10, 15, 30, 45, 60, 90]
         self.end_focus = rumps.MenuItem('End Focus', callback=self.disable_focus)
         self.focus_options = [rumps.MenuItem(f'{length} min', callback=self.enable_focus) for length in focus_lengths]
+        self.time_left = rumps.MenuItem('Time Left: 0:00')
+        self.time_left.hidden = True
 
         self.menu = [
             {'Focus': [*self.focus_options, None, self.end_focus]},
+            self.time_left
         ]
 
 
@@ -38,9 +41,13 @@ class Alfred(rumps.App):
 
 
     def on_tick(self, sender):
-        # time_left = sender.end - sender.count
-        # mins, secs = divmod(time_left, 60)
+        time_left = sender.end - sender.count
+        mins, secs = divmod(time_left, 60)
         sender.count += 1
+        if (mins <= 0) & (secs >= 0):
+            self.time_left.title = f'Time Left: < 1 min'
+        else:
+            self.time_left.title = f'Time Left: {mins} min'
 
         if sender.count == sender.end:
             self.disable_focus()
@@ -71,8 +78,10 @@ class Alfred(rumps.App):
 
         for item in self.focus_options:
             item.set_callback(None)
+
         self.timer.end = sleepy * 60
         self.timer.start()
+        self.time_left.hidden = False
 
 
     def disable_focus(self, sender=None):
@@ -82,6 +91,7 @@ class Alfred(rumps.App):
         self.timer.count = 0 
         for item in self.focus_options:
             item.set_callback(self.enable_focus)
+        self.time_left.hidden = True
 
 
 if __name__ == "__main__":
