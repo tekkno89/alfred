@@ -8,8 +8,8 @@ Usage:
 from setuptools import setup
 
 APP = ['alfred-assist.py']
-DATA_FILES = ['assets/alfred_icon.png', 'assets/macos-focus-mode.shortcut']
 OPTIONS = {
+    'iconfile': 'assets/alfred-assist.icns',
     'argv_emulation': True,
     'plist': {
         'LSUIElement': True,
@@ -18,8 +18,9 @@ OPTIONS = {
 }
 
 setup(
+    name='Alfred Assist',
     app=APP,
-    data_files=DATA_FILES,
+    data_files=['assets'],
     options={'py2app': OPTIONS},
     setup_requires=['py2app'],
 )

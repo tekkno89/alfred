@@ -17,7 +17,7 @@ class FocusState(Enum):
 
 class Alfred(rumps.App):
     def __init__(self):
-        super(Alfred, self).__init__('Alfred', icon='assets/alfred_icon.png')
+        super(Alfred, self).__init__('Alfred', icon='assets/alfred-assist.icns')
 
         self.timer = rumps.Timer(self.on_tick, 1)
         self.timer.stop()
