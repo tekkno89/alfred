@@ -7,7 +7,7 @@ from enum import Enum
 
 
 home_dir = os.getenv('HOME')
-shortcut_name = 'macos-focus-mode'
+shortcut_name = 'alfred-focus-mode'
 
 
 class FocusState(Enum):
@@ -18,26 +18,40 @@ class FocusState(Enum):
 class Alfred(rumps.App):
     def __init__(self):
         super(Alfred, self).__init__('Alfred', icon='assets/alfred-assist.icns')
+        # rumps.debug_mode(True)
 
         self.timer = rumps.Timer(self.on_tick, 1)
         self.timer.stop()
         self.timer.count = 0
 
-        focus_lengths = [1, 5, 10, 15, 30, 45, 60, 90]
-        self.end_focus = rumps.MenuItem('End Focus', callback=self.disable_focus)
-        self.focus_options = [rumps.MenuItem(f'{length} min', callback=self.enable_focus) for length in focus_lengths]
-        self.time_left = rumps.MenuItem('Time Left: 0:00')
-        self.time_left.hidden = True
-
-        self.menu = [
-            {'Focus': [*self.focus_options, None, self.end_focus]},
-            self.time_left
-        ]
-
-
+        # Make sure the shortcut is installed
+        self.check_shortcut_installed()
+        if not self.check_shortcut_installed():
+            self.menu = [
+                rumps.MenuItem('Install Focus Shortcut', callback=self.install_shortcut)
+            ]
+        else:
+            focus_lengths = [1, 5, 10, 15, 30, 45, 60, 90]
+            self.end_focus = rumps.MenuItem('End Focus', callback=None)
+            self.focus_options = [rumps.MenuItem(f'{length} min', callback=self.enable_focus) for length in focus_lengths]
+            self.time_left = rumps.MenuItem('Time Left: 0:00')
+            self.time_left.hidden = True
+            self.menu = [
+                {'Focus': [*self.focus_options, None, self.end_focus]},
+                self.time_left
+            ]
+            
+        
     # Make sure the short cut is installed, have to use this method for osx 13
     def check_shortcut_installed(self):
-        pass
+        shortcuts = subprocess.run(['shortcuts','list'], capture_output=True).stdout.decode('ascii', 'ignore').split('\n')
+        return True if shortcut_name in shortcuts else False
+        
+
+    # Install Focus Shortcut
+    def install_shortcut(self, _):
+        rumps.alert(title='Alfred Assist', message='Focus Shortcut not installed. Click "Add Shortcut" when the window pops up and then restart Alfred Assist.', ok='OK', cancel=None)
+        subprocess.run(['open', f'assets/{shortcut_name}.shortcut'])
 
 
     def on_tick(self, sender):
@@ -72,7 +86,6 @@ class Alfred(rumps.App):
     def enable_focus(self, length: rumps.MenuItem):
         """Set Focus for X minutes"""
         sleepy = int(length.title.split()[0])
-
         self.set_dnd(FocusState.ON, sleepy)
         self.toggle_dock()
 
@@ -82,6 +95,7 @@ class Alfred(rumps.App):
         self.timer.end = sleepy * 60
         self.timer.start()
         self.time_left.hidden = False
+        self.end_focus.set_callback(self.disable_focus)
 
 
     def disable_focus(self, sender=None):
@@ -92,6 +106,7 @@ class Alfred(rumps.App):
         for item in self.focus_options:
             item.set_callback(self.enable_focus)
         self.time_left.hidden = True
+        self.end_focus.set_callback(None)
 
 
 if __name__ == "__main__":
