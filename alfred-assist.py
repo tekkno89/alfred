@@ -6,7 +6,6 @@ import subprocess
 from enum import Enum
 
 
-home_dir = os.getenv('HOME')
 shortcut_name = 'alfred-focus-mode'
 
 
@@ -31,9 +30,9 @@ class Alfred(rumps.App):
                 rumps.MenuItem('Install Focus Shortcut', callback=self.install_shortcut)
             ]
         else:
-            focus_lengths = [1, 5, 10, 15, 30, 45, 60, 90]
+            focus_lengths = [5, 10, 15, None, 20, 25, 30, 35, None, 40, 45, 50, 55, None, 60, 90]
             self.end_focus = rumps.MenuItem('End Focus', callback=None)
-            self.focus_options = [rumps.MenuItem(f'{length} min', callback=self.enable_focus) for length in focus_lengths]
+            self.focus_options = [rumps.MenuItem(f'{length} min', callback=self.enable_focus) if length else None for length in focus_lengths]
             self.time_left = rumps.MenuItem('Time Left: 0:00')
             self.time_left.hidden = True
             self.menu = [
@@ -90,7 +89,7 @@ class Alfred(rumps.App):
         self.toggle_dock()
 
         for item in self.focus_options:
-            item.set_callback(None)
+            item.set_callback(None) if item != None else None
 
         self.timer.end = sleepy * 60
         self.timer.start()
@@ -104,7 +103,7 @@ class Alfred(rumps.App):
         self.toggle_dock()
         self.timer.count = 0 
         for item in self.focus_options:
-            item.set_callback(self.enable_focus)
+            item.set_callback(self.enable_focus) if item != None else None
         self.time_left.hidden = True
         self.end_focus.set_callback(None)
 
