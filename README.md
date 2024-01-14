@@ -8,7 +8,7 @@ Download Install DMG - [HERE](https://alfred-assist.s3.amazonaws.com/Alfred-Assi
 
 The `Focus` feature provides a way for you to enable the Mac Do Not Disturb mode. The standard DND only allows you to specify a DND of 1 hour, until the next morning, or indefinitely. `Focus` allows you to provide a more granular time limit. Not only does it enable DND, it will also hide your App Dock to help you focus on your work and not be distracted by any email or slack notifications that occur during your focus time.
 
-A bonus that is built in to DND is that it will sync across your other Mac devices, like your iPhone and iPad. Also, wanted to give [arodik](https://github.com/arodik) thanks for the inpiration. I had to refactor the hide operations when Ventura rolled out.
+A bonus that is built in to DND is that it will sync across your other Mac devices, like your iPhone and iPad. Also, I wanted to give [arodik](https://github.com/arodik) thanks for the inpiration. I had to refactor the hide operations when Ventura rolled out.
 
 ## Installation
 
