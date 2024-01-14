@@ -1,32 +1,56 @@
-# Alfred
-Alfred is a personal assistant to help with daily work. This project is still a work in progress. The only current feature is `focus` and is provided as a CLI tool. This will eventually be rolled into an app that runs in the background with other features, for example, updating your communications apps such as Slack with a DND status. Other features to come soon.
+# Alfred Assist
 
-### Focus
-The `focus` feature provides a way for you to enable the Mac Do Not Disturb mode. Currently DND only allows you to specify a DND of 1 hour or until the next morning. `focus` allows you to provide a more granular time limit of as many minutes you would like. Not only does it enable DND, it will also hide your App Dock to help you focus on your work and not be distracted by any email or slack notifications that occur during your focus time. A bonus that is built in to DND is that it will sync across your other Mac devices, like your iPhone and iPad. Also, wanted to give [arodik](https://github.com/arodik) thanks for the inpiration. This had to be refactored when Ventura rolled out.
+Alfred is a tool that enables you to focus better on your daily work. This project is still a work in progress, there is currently only the `Focus` feature. More features are coming soon, for example, updating your communications apps such as Slack with a DND status and a Pomodoro mode. If you have an idea for a feature, open an issue with the request.
 
-## Usage
-Once the focus script is [installed](#installation), you just need to call the `focus` command from your terminal.
-### Enable Focus
-To enable you just need to need to use the `-e` flag followed by how many minutes you would like to focus. After focus has reached the amount of time you have set, it will disable DND and unhide your App Dock. The following is an example of enabling focus for 30 minutes:
-```
-focus -e 30
-```
-### End Focus Early
-If you would like to end your focus mode early, you can call the `focus` command again with the `-d` flag and it will end DND and unhide your App Dock.
-```
-focus -d
-```
+Download Install DMG - [HERE](https://alfred-assist.s3.amazonaws.com/Alfred-Assist_v1.0.0.dmg)
+
+## Focus
+
+The `Focus` feature provides a way for you to enable the Mac Do Not Disturb mode. The standard DND only allows you to specify a DND of 1 hour, until the next morning, or indefinitely. `Focus` allows you to provide a more granular time limit. Not only does it enable DND, it will also hide your App Dock to help you focus on your work and not be distracted by any email or slack notifications that occur during your focus time.
+
+A bonus that is built in to DND is that it will sync across your other Mac devices, like your iPhone and iPad. Also, I wanted to give [arodik](https://github.com/arodik) thanks for the inpiration. I had to refactor the hide operations when Ventura rolled out.
 
 ## Installation
-`focus` works by using a custom Mac Shortcuts. The makefile will help you install that Shortcut and setup the rest of the app for you. After running the Makefile you will just need to add the focus app to your PATH. See the [Set focus Path](#set-focus-path) section if you need help with that. Run the following command to install `focus`, NOTE - you will be prompted with a window at one point to install the shortcut, you will just need to click the `Add Shortcut` button.
-```
-make install
-```
 
-### Set focus Path
-If you use Bash shell you can run the following command in your terminal:
-```
-echo PATH=$PATH:~/.alfred >> ~/.bashrc
-```
-For zshell, use the following:
-echo PATH=$PATH:~/.alfred >> ~/.zshrc
+You can install Alfred Assist with the OSX dmg that can be downloaded from [HERE](https://alfred-assist.s3.amazonaws.com/Alfred-Assist_v1.0.0.dmg). Alfred Assist is currently a pet project and as such you will get an error stating "Alfred Assist can't be opened ...". You will have to permit the app from Mac Settings -> Privacy & Security.
+
+<p align="center">
+  <img src="docs/alfred_install_cant_verify02.png" width="35%">
+  <img src="docs/alfred_install_permit.png" width="50%">
+</p>
+
+### Focus Setup
+
+`Focus` works by using a custom Mac Shortcuts, you will not be able to use Focus until you have installed the shortcut. Here are the steps for setup: 
+
+**1. Activate Focus Shortcut:**
+
+- Upon successful installation, an Alfred Assist icon will appear in your menu bar.
+- Click on the Alfred Assist icon.
+- In the menu, select "Install Focus Shortcut."
+
+<p align="center">
+  <img src="docs/alfred_focus_install.png">
+</p>
+
+**2. Shortcut Installation:**
+
+- A window will appear, prompting you to install the shortcut.
+- Click the "Add Shortcut" button to complete the installation.
+
+<p align="center">
+  <img src="docs/alfred_focus_shortcut_add.png" width="30%">
+</p>
+
+**3. Restart Alfred Assist:**
+
+- Focus will be inactive until the shortcut is installed.
+- Quit Alfred Assist and relaunch the app.
+
+**4. Access Focus Options:**
+
+- After relaunching, you can now find and use the Focus options within the app.
+
+<p align="center">
+  <img src="docs/alfred_focus_options.png">
+</p>
