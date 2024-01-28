@@ -13,6 +13,10 @@ class FocusState(Enum):
     ON = 'on'
     OFF = 'off'
 
+class PomodoroState(Enum):
+    ON = 'on'
+    OFF = 'off'
+
 
 class Alfred(rumps.App):
     def __init__(self):
@@ -22,6 +26,8 @@ class Alfred(rumps.App):
         self.timer = rumps.Timer(self.on_tick, 1)
         self.timer.stop()
         self.timer.count = 0
+        self.pomodoro_state = PomodoroState.OFF
+        self.pomodoro_session_count = 0
 
         # Make sure the shortcut is installed
         self.check_shortcut_installed()
@@ -33,10 +39,21 @@ class Alfred(rumps.App):
             focus_lengths = [5, 10, 15, None, 20, 25, 30, 35, None, 40, 45, 50, 55, None, 60, 90]
             self.end_focus = rumps.MenuItem('End Focus', callback=None)
             self.focus_options = [rumps.MenuItem(f'{length} min', callback=self.enable_focus) if length else None for length in focus_lengths]
+            
             self.time_left = rumps.MenuItem('Time Left: 0:00')
             self.time_left.hidden = True
+            
+            pomodoro_options = [
+                rumps.MenuItem('Start', callback=None),
+                rumps.MenuItem('End', callback=None),
+                rumps.MenuItem('Set', callback=self.set_pomodoro),
+            ]
+
+            self.focus_submenu = [*self.focus_options, None, self.end_focus]
+
             self.menu = [
-                {'Focus': [*self.focus_options, None, self.end_focus]},
+                {'Focus': self.focus_submenu},
+                {'Pomodoro': pomodoro_options},
                 self.time_left
             ]
             
@@ -82,14 +99,21 @@ class Alfred(rumps.App):
         )
 
 
-    def enable_focus(self, length: rumps.MenuItem):
+    def enable_focus(self, length):
         """Set Focus for X minutes"""
-        sleepy = int(length.title.split()[0])
+        if type(length) == rumps.MenuItem:
+            sleepy = int(length.title.split()[0])
+        else:
+            sleepy = length
+
         self.set_dnd(FocusState.ON, sleepy)
         self.toggle_dock()
 
-        for item in self.focus_options:
-            item.set_callback(None) if item != None else None
+        if self.pomodoro_state == PomodoroState.ON:
+            for item in self.focus_options:
+                item.set_callback(None) if item != None else None
+        else:
+            self.menu['Focus'] = None
 
         self.timer.end = sleepy * 60
         self.timer.start()
@@ -101,11 +125,47 @@ class Alfred(rumps.App):
         self.set_dnd(FocusState.OFF, 0)
         self.timer.stop()
         self.toggle_dock()
-        self.timer.count = 0 
+        self.timer.count = 0
+
         for item in self.focus_options:
             item.set_callback(self.enable_focus) if item != None else None
+        
         self.time_left.hidden = True
         self.end_focus.set_callback(None)
+
+    
+    def set_pomodoro(self, sender):
+        """Set Pomodoro"""
+        pom_length = int(rumps.Window(
+            message='Set Session Length', 
+            title='Pomodoro Length', 
+            default_text='25', 
+            dimensions=(50,20), 
+            ok='Set', 
+            cancel='Cancel').run().text)
+        
+        pom_sessions = int(rumps.Window(
+            message='Set Number of Sessions', 
+            title='Pomodoro Sessions', 
+            default_text='5', 
+            dimensions=(50,20), 
+            ok='Set', 
+            cancel='Cancel').run().text)
+        
+        pom_break = int(rumps.Window(
+            message='Set Break Length', 
+            title='Pomodoro Break', 
+            default_text='10', 
+            dimensions=(50,20), 
+            ok='Set', 
+            cancel='Cancel').run().text)
+        
+        if (pom_length > 0) & (pom_sessions > 0) & (pom_break > 0):
+            self.pomodoro_state = PomodoroState.ON
+            self.enable_focus(pom_length)
+
+            
+        
 
 
 if __name__ == "__main__":
