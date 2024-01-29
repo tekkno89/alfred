@@ -218,9 +218,12 @@ class FocusMode(Mode):
         super().__init__(timer)
         self.alfred = alfred
         self.timer.set_callback(self.on_tick)
+        self.focus_options_enabled = self.alfred.focus_options
 
     
     def enable(self, length):
+        for item in self.alfred.focus_options:
+            item.set_callback(None) if item != None else None
         self.enable_focus(length)
         self.alfred.time_left.hidden = False
         self.alfred.end_focus.set_callback(self.disable)
@@ -230,6 +233,7 @@ class FocusMode(Mode):
         self.disable_focus()
         self.alfred.time_left.hidden = True
         self.alfred.end_focus.set_callback(None)
+        self.alfred.focus_options = self.focus_options_enabled
 
 
     def on_tick(self, sender):
