@@ -13,10 +13,6 @@ class FocusState(Enum):
     ON = 'on'
     OFF = 'off'
 
-class PomodoroState(Enum):
-    ON = 'on'
-    OFF = 'off'
-
 
 class AlfredTimer(rumps.Timer):
     def __init__(self, callback, interval):
@@ -31,22 +27,28 @@ class Alfred(rumps.App):
         super(Alfred, self).__init__('Alfred', icon='assets/alfred-assist.icns')
         # rumps.debug_mode(True)
 
-        self.timer = AlfredTimer(None, 1)
-        self.pomodoro_state = PomodoroState.OFF
-        self.pomodoro_session_count = 0
+        self.focus_timer = AlfredTimer(None, 1)
+        self.pomodoro_timer = AlfredTimer(None, 1)
         self.focus_lengths = [1, 5, 10, 15, None, 20, 25, 30, 35, None, 40, 45, 50, 55, None, 60, 90]
         self.focus_options = []
-
-        self.FocusMode = FocusMode(self.timer, self)
+        self.time_left = rumps.MenuItem('Time Left: 0:00')
+        self.break_left = rumps.MenuItem('Break Left: 0:00')
+        self.sessions_left = rumps.MenuItem('Sessions Left: 0')
+        self.time_left.hidden = True
+        self.break_left.hidden = True
+        self.sessions_left.hidden = True
 
         # Make sure the shortcut is installed
         self.check_shortcut_installed()
+        
         if not self.check_shortcut_installed():
             self.menu = [
                 rumps.MenuItem('Install Focus Shortcut', callback=self.install_shortcut)
             ]
         else:
-            self.end_focus = rumps.MenuItem('End Focus', callback=None)
+            self.FocusMode = FocusMode(self.focus_timer, self)
+            self.PomodoroMode = PomodoroMode(self.pomodoro_timer, self)
+
             for length in self.focus_lengths:
                 if length:
                     new_item = rumps.MenuItem(f'{length} min', callback=None)
@@ -56,21 +58,22 @@ class Alfred(rumps.App):
                 else:
                     self.focus_options.append(None)
 
-            self.time_left = rumps.MenuItem('Time Left: 0:00')
-            self.time_left.hidden = True
-            
-            pomodoro_options = [
-                rumps.MenuItem('Start', callback=None),
-                rumps.MenuItem('End', callback=None),
-                rumps.MenuItem('Set', callback=self.set_pomodoro),
-            ]
-
+            self.end_focus = rumps.MenuItem('End Focus', callback=None)
             self.focus_submenu = [*self.focus_options, None, self.end_focus]
+            
+            self.pomodoro_start = rumps.MenuItem('Start', callback=self.PomodoroMode.enable)
+            self.pomodoro_end = rumps.MenuItem('End', callback=None)
+            pomodoro_options = [
+                self.pomodoro_start,
+                self.pomodoro_end
+            ]
 
             self.menu = [
                 {'Focus': self.focus_submenu},
-                # {'Pomodoro': pomodoro_options},
-                self.time_left
+                {'Pomodoro': pomodoro_options},
+                self.time_left,
+                self.break_left,
+                self.sessions_left
             ]
             
         
@@ -86,105 +89,6 @@ class Alfred(rumps.App):
         subprocess.run(['open', f'assets/{shortcut_name}.shortcut'])
 
 
-    def on_tick(self, sender):
-        time_left = sender.end - sender.count
-        mins, secs = divmod(time_left, 60)
-        sender.count += 1
-        if (mins <= 0) & (secs >= 0):
-            self.time_left.title = f'Time Left: < 1 min'
-        else:
-            self.time_left.title = f'Time Left: {mins} min'
-
-        if sender.count == sender.end:
-            self.disable_focus()
-
-
-    def set_dnd(self, status: FocusState, length: int):
-        if status == FocusState.ON:
-            shortcut_cmd = f'shortcuts run {shortcut_name} <<< "on {length}"'
-        else:
-            shortcut_cmd = f'shortcuts run {shortcut_name} <<< "off"'
-
-        subprocess.run(shortcut_cmd, shell=True)
-
-
-    # Decided to use osascript because restarting dock will launch all the app windows you have minimized
-    def toggle_dock(self):
-        subprocess.run(
-            ['osascript', '-e', 'tell application "System Events" to set autohide of dock preferences to not (autohide of dock preferences)']
-        )
-
-
-    def enable_focus(self, length):
-        """Set Focus for X minutes"""
-        if type(length) == rumps.MenuItem:
-            sleepy = int(length.title.split()[0])
-        else:
-            sleepy = length
-
-        self.set_dnd(FocusState.ON, sleepy)
-        self.toggle_dock()
-
-        if self.pomodoro_state == PomodoroState.ON:
-            for item in self.focus_options:
-                item.set_callback(None) if item != None else None
-        else:
-            self.menu['Focus'] = None
-
-        self.timer.end = sleepy * 60
-        self.timer.start()
-        self.time_left.hidden = False
-        self.end_focus.set_callback(self.disable_focus)
-
-
-    def disable_focus(self, sender=None):
-        self.set_dnd(FocusState.OFF, 0)
-        self.timer.stop()
-        self.toggle_dock()
-        self.timer.count = 0
-
-        for item in self.focus_options:
-            item.set_callback(self.enable_focus) if item != None else None
-        
-        self.time_left.hidden = True
-        self.end_focus.set_callback(None)
-
-    
-    def set_pomodoro(self, sender):
-        """Set Pomodoro"""
-        pom_length = int(rumps.Window(
-            message='Set Session Length', 
-            title='Pomodoro Length', 
-            default_text='25', 
-            dimensions=(50,20), 
-            ok='Set', 
-            cancel='Cancel').run().text)
-        
-        pom_sessions = int(rumps.Window(
-            message='Set Number of Sessions', 
-            title='Pomodoro Sessions', 
-            default_text='5', 
-            dimensions=(50,20), 
-            ok='Set', 
-            cancel='Cancel').run().text)
-        
-        pom_break = int(rumps.Window(
-            message='Set Break Length', 
-            title='Pomodoro Break', 
-            default_text='10', 
-            dimensions=(50,20), 
-            ok='Set', 
-            cancel='Cancel').run().text)
-        
-        if (pom_length > 0) & (pom_sessions > 0) & (pom_break > 0):
-            self.pomodoro_state = PomodoroState.ON
-            self.enable_focus(pom_length)
-
-
-
-
-
-            
 class Mode:
     def __init__(self, timer: AlfredTimer):
         self.timer = timer
@@ -257,8 +161,69 @@ class FocusMode(Mode):
             self.disable()
 
 
-class PomodoroMode:
-    pass        
+class PomodoroMode(Mode):
+    def __init__(self, timer: AlfredTimer, alfred: Alfred):
+        super().__init__(timer)
+        self.alfred = alfred
+        self.timer.set_callback(self.on_tick)
+        self.sessions_left = None
+
+
+    def enable(self, _):
+        # Set Pomodoro
+        pom_length = int(rumps.Window(
+            message='Set Session Length', 
+            title='Pomodoro Length', 
+            default_text='25', 
+            dimensions=(50,20), 
+            ok='Set', 
+            cancel='Cancel').run().text)
+        
+        pom_sessions = int(rumps.Window(
+            message='Set Number of Sessions', 
+            title='Pomodoro Sessions', 
+            default_text='5', 
+            dimensions=(50,20), 
+            ok='Set', 
+            cancel='Cancel').run().text)
+        
+        pom_break = int(rumps.Window(
+            message='Set Break Length', 
+            title='Pomodoro Break', 
+            default_text='10', 
+            dimensions=(50,20), 
+            ok='Set', 
+            cancel='Cancel').run().text)
+        
+        if (pom_length > 0) & (pom_sessions > 0) & (pom_break > 0):
+            self.enable_focus(pom_length)
+            self.sessions_left = pom_sessions
+            self.alfred.time_left.hidden = False
+            self.alfred.sessions_left.title = f'Sessions Left: {self.sessions_left}'
+            self.alfred.sessions_left.hidden = False
+            self.alfred.pomodoro_end.set_callback(self.disable)
+
+
+    def disable(self, sender=None):
+        self.disable_focus()
+        self.alfred.time_left.hidden = True
+        self.alfred.break_left.hidden = True
+        self.alfred.sessions_left.hidden = True
+        self.alfred.pomodoro_end.set_callback(None)
+
+
+    def on_tick(self, sender):
+        time_left = sender.end - sender.count
+        mins, secs = divmod(time_left, 60)
+        sender.count += 1
+        if (mins <= 0) & (secs >= 0):
+            self.alfred.time_left.title = f'Time Left: < 1 min'
+        else:
+            self.alfred.time_left.title = f'Time Left: {mins} min'
+
+        if sender.count == sender.end:
+            self.disable() 
+        
 
 
 if __name__ == "__main__":
