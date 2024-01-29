@@ -18,14 +18,20 @@ class PomodoroState(Enum):
     OFF = 'off'
 
 
+class AlfredTimer(rumps.Timer):
+    def __init__(self, callback, interval):
+        super(AlfredTimer, self).__init__(callback, interval)
+        self.count = 0
+        self.end = 0
+        self.stop()
+
+
 class Alfred(rumps.App):
     def __init__(self):
         super(Alfred, self).__init__('Alfred', icon='assets/alfred-assist.icns')
         # rumps.debug_mode(True)
 
-        self.timer = rumps.Timer(self.on_tick, 1)
-        self.timer.stop()
-        self.timer.count = 0
+        self.timer = AlfredTimer(self.on_tick, 1)
         self.pomodoro_state = PomodoroState.OFF
         self.pomodoro_session_count = 0
 
@@ -36,7 +42,7 @@ class Alfred(rumps.App):
                 rumps.MenuItem('Install Focus Shortcut', callback=self.install_shortcut)
             ]
         else:
-            focus_lengths = [5, 10, 15, None, 20, 25, 30, 35, None, 40, 45, 50, 55, None, 60, 90]
+            focus_lengths = [1, 5, 10, 15, None, 20, 25, 30, 35, None, 40, 45, 50, 55, None, 60, 90]
             self.end_focus = rumps.MenuItem('End Focus', callback=None)
             self.focus_options = [rumps.MenuItem(f'{length} min', callback=self.enable_focus) if length else None for length in focus_lengths]
             
@@ -165,7 +171,75 @@ class Alfred(rumps.App):
             self.enable_focus(pom_length)
 
             
-        
+class Mode:
+    def __init__(self, timer: AlfredTimer):
+        self.timer = timer
+
+
+    def enable_focus(self, length):
+        """Set Focus for X minutes"""
+        sleepy = length
+        self.set_dnd(FocusState.ON, sleepy)
+        self.toggle_dock()
+        self.timer.end = sleepy * 60
+        self.timer.start()
+
+
+    def disable_focus(self):
+        self.set_dnd(FocusState.OFF, 0)
+        self.timer.stop()
+        self.toggle_dock()
+        self.timer.count = 0
+
+
+    def set_dnd(self, status: FocusState, length: int):
+        if status == FocusState.ON:
+            shortcut_cmd = f'shortcuts run {shortcut_name} <<< "on {length}"'
+        else:
+            shortcut_cmd = f'shortcuts run {shortcut_name} <<< "off"'
+
+        subprocess.run(shortcut_cmd, shell=True)
+
+
+    def toggle_dock(self):
+        subprocess.run(
+            ['osascript', '-e', 'tell application "System Events" to set autohide of dock preferences to not (autohide of dock preferences)']
+        )
+
+
+class FocusMode(Mode):
+    def __init__(self, timer: AlfredTimer, alfred: Alfred):
+        super().__init__(timer)
+        self.alfred = alfred
+
+    
+    def enable(self, length):
+        self.enable_focus(length)
+        self.alfred.time_left.hidden = False
+        self.alfred.end_focus.set_callback(FocusMode.disable)
+
+
+    def disable(self):
+        self.disable_focus()
+        self.alfred.time_left.hidden = True
+        self.alfred.end_focus.set_callback(None)
+
+
+    def on_tick(self, sender):
+        time_left = sender.end - sender.count
+        mins, secs = divmod(time_left, 60)
+        sender.count += 1
+        if (mins <= 0) & (secs >= 0):
+            self.alfred.time_left.title = f'Time Left: < 1 min'
+        else:
+            self.alfred.time_left.title = f'Time Left: {mins} min'
+
+        if sender.count == sender.end:
+            self.disable_focus()
+
+
+class PomodoroMode:
+    pass        
 
 
 if __name__ == "__main__":
