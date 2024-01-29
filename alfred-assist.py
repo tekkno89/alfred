@@ -34,6 +34,8 @@ class Alfred(rumps.App):
         self.timer = AlfredTimer(None, 1)
         self.pomodoro_state = PomodoroState.OFF
         self.pomodoro_session_count = 0
+        self.focus_lengths = [1, 5, 10, 15, None, 20, 25, 30, 35, None, 40, 45, 50, 55, None, 60, 90]
+        self.focus_options = []
 
         self.FocusMode = FocusMode(self.timer, self)
 
@@ -44,9 +46,15 @@ class Alfred(rumps.App):
                 rumps.MenuItem('Install Focus Shortcut', callback=self.install_shortcut)
             ]
         else:
-            focus_lengths = [1, 5, 10, 15, None, 20, 25, 30, 35, None, 40, 45, 50, 55, None, 60, 90]
             self.end_focus = rumps.MenuItem('End Focus', callback=None)
-            self.focus_options = [rumps.MenuItem(f'{length} min', callback=lambda _, length=length: self.FocusMode.enable(length)) if length else None for length in focus_lengths]
+            for length in self.focus_lengths:
+                if length:
+                    new_item = rumps.MenuItem(f'{length} min', callback=None)
+                    new_item.length = length
+                    new_item.set_callback(lambda _, length=new_item.length: self.FocusMode.enable(length))
+                    self.focus_options.append(new_item)
+                else:
+                    self.focus_options.append(None)
 
             self.time_left = rumps.MenuItem('Time Left: 0:00')
             self.time_left.hidden = True
@@ -218,22 +226,22 @@ class FocusMode(Mode):
         super().__init__(timer)
         self.alfred = alfred
         self.timer.set_callback(self.on_tick)
-        self.focus_options_enabled = self.alfred.focus_options
 
     
     def enable(self, length):
-        for item in self.alfred.focus_options:
-            item.set_callback(None) if item != None else None
         self.enable_focus(length)
         self.alfred.time_left.hidden = False
         self.alfred.end_focus.set_callback(self.disable)
+        for item in self.alfred.focus_options:
+            item.set_callback(None) if item is not None else None
 
 
     def disable(self, sender=None):
         self.disable_focus()
         self.alfred.time_left.hidden = True
         self.alfred.end_focus.set_callback(None)
-        self.alfred.focus_options = self.focus_options_enabled
+        for item in self.alfred.focus_options:
+            item.set_callback(callback=lambda _, length=item.length: self.enable(length)) if item is not None else None
 
 
     def on_tick(self, sender):
