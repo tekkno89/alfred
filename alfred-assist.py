@@ -21,9 +21,9 @@ class PomodoroState(Enum):
 class AlfredTimer(rumps.Timer):
     def __init__(self, callback, interval):
         super(AlfredTimer, self).__init__(callback, interval)
+        self.stop()
         self.count = 0
         self.end = 0
-        self.stop()
 
 
 class Alfred(rumps.App):
@@ -31,9 +31,11 @@ class Alfred(rumps.App):
         super(Alfred, self).__init__('Alfred', icon='assets/alfred-assist.icns')
         # rumps.debug_mode(True)
 
-        self.timer = AlfredTimer(self.on_tick, 1)
+        self.timer = AlfredTimer(None, 1)
         self.pomodoro_state = PomodoroState.OFF
         self.pomodoro_session_count = 0
+
+        self.FocusMode = FocusMode(self.timer, self)
 
         # Make sure the shortcut is installed
         self.check_shortcut_installed()
@@ -44,8 +46,8 @@ class Alfred(rumps.App):
         else:
             focus_lengths = [1, 5, 10, 15, None, 20, 25, 30, 35, None, 40, 45, 50, 55, None, 60, 90]
             self.end_focus = rumps.MenuItem('End Focus', callback=None)
-            self.focus_options = [rumps.MenuItem(f'{length} min', callback=self.enable_focus) if length else None for length in focus_lengths]
-            
+            self.focus_options = [rumps.MenuItem(f'{length} min', callback=lambda _, length=length: self.FocusMode.enable(length)) if length else None for length in focus_lengths]
+
             self.time_left = rumps.MenuItem('Time Left: 0:00')
             self.time_left.hidden = True
             
@@ -59,7 +61,7 @@ class Alfred(rumps.App):
 
             self.menu = [
                 {'Focus': self.focus_submenu},
-                {'Pomodoro': pomodoro_options},
+                # {'Pomodoro': pomodoro_options},
                 self.time_left
             ]
             
@@ -170,6 +172,10 @@ class Alfred(rumps.App):
             self.pomodoro_state = PomodoroState.ON
             self.enable_focus(pom_length)
 
+
+
+
+
             
 class Mode:
     def __init__(self, timer: AlfredTimer):
@@ -211,15 +217,16 @@ class FocusMode(Mode):
     def __init__(self, timer: AlfredTimer, alfred: Alfred):
         super().__init__(timer)
         self.alfred = alfred
+        self.timer.set_callback(self.on_tick)
 
     
     def enable(self, length):
         self.enable_focus(length)
         self.alfred.time_left.hidden = False
-        self.alfred.end_focus.set_callback(FocusMode.disable)
+        self.alfred.end_focus.set_callback(self.disable)
 
 
-    def disable(self):
+    def disable(self, sender=None):
         self.disable_focus()
         self.alfred.time_left.hidden = True
         self.alfred.end_focus.set_callback(None)
@@ -235,7 +242,7 @@ class FocusMode(Mode):
             self.alfred.time_left.title = f'Time Left: {mins} min'
 
         if sender.count == sender.end:
-            self.disable_focus()
+            self.disable()
 
 
 class PomodoroMode:
