@@ -11,7 +11,7 @@ shortcut_name = 'alfred-focus-mode'
 
 class FocusState(Enum):
     ON = 'on'
-    OFF = 'off'
+    OFF = 'off'    
 
 
 class FocusTimer(rumps.Timer):

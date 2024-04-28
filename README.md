@@ -54,3 +54,14 @@ You can install Alfred Assist with the OSX dmg that can be downloaded from [HERE
 <p align="center">
   <img src="docs/alfred_focus_options.png">
 </p>
+
+# Development
+### Package Alfred for Testing
+If you would like to package Alfred for testing before distribution, you can use the following command:
+```
+python setup.py py2app
+```
+A new directory will be created in the project root called `dist`. This directory contains the compiled app and all necessary files. Within this directory you can find the Alfred Assist package at `dist/MacOS/`.
+
+### Create Alfred for DMG Distribution
+If you would like to package Alfred for distribution, first follow the directions from [Package Alfred for Testing](#package-alfred-for-testing). After it is compiled you can create a new DMG file by the following directions from [this guide](https://gist.github.com/jadeatucker/5382343).
