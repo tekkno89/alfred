@@ -212,6 +212,7 @@ class PomodoroMode(Mode):
         self.alfred.sessions_left.title = f'Sessions Left: {self.sessions_left}'
         self.alfred.sessions_left.hidden = False
         self.alfred.pomodoro_end.set_callback(self.disable)
+        self.alfred.pomodoro_start.set_callback(None)
 
 
     def disable(self, sender=None):
@@ -229,24 +230,21 @@ class PomodoroMode(Mode):
         self.alfred.time_left.title = f'{"Break" if self.is_break_time else "Focus"} Time Left: {"< 1" if (mins <= 0) & (secs >=0) else mins} min'
 
         if sender.count == sender.end:
-            if not self.is_break_time:
-                self.sessions_left -= 1
-            
             if (self.is_break_time) & (self.sessions_left > 0):
+                self.sessions_left -= 1
                 self.alfred.sessions_left.title = f'Sessions Left: {self.sessions_left}'
                 self.is_break_time = False
-                if self.sessions_left > 0:
-                    sender.count = 0
-                    self.enable()
+                sender.count = 0
+                self.enable()
             elif self.sessions_left > 0:
                 self.is_break_time = True
-                self.alfred.sessions_left.title = f'Sessions Left: {self.sessions_left}'
                 self.disable()
                 self.alfred.time_left.hidden = False
                 self.alfred.sessions_left.hidden = False
             else:
                 self.disable()
-        
+                self.timer.stop()
+                
 
 
 if __name__ == "__main__":
