@@ -1,26 +1,58 @@
-#!/usr/bin/env python3
-
 import os
 import rumps
 import subprocess
 from enum import Enum
 
 
-shortcut_name = 'alfred-focus-mode'
-
-
 class FocusState(Enum):
-    ON = 'on'
-    OFF = 'off'    
+    ON = 1
+    OFF = 2
+
+
+class FocusManager:
+    def __init__(self):
+        pass
+
+    def enable_focus(self, session_length):
+        """Set Focus for X minutes"""
+        self.set_dnd(FocusState.ON, session_length)
+        self.toggle_dock()
+
+    def disable_focus(self):
+        self.set_dnd(FocusState.OFF, 0)
+        self.toggle_dock()
+
+    def set_dnd(self, status: FocusState, length: int):
+        if status == FocusState.ON:
+            shortcut_cmd = f'shortcuts run {shortcut_name} <<< "on {length}"'
+        else:
+            shortcut_cmd = f'shortcuts run {shortcut_name} <<< "off"'
+
+        subprocess.run(shortcut_cmd, shell=True)
+
+    def toggle_dock(self):
+        subprocess.run(
+            ['osascript', '-e', 'tell application "System Events" to set autohide of dock preferences to not (autohide of dock preferences)']
+        )
 
 
 class SessionTimer(rumps.Timer):
     def __init__(self, callback, interval):
-        super(SessionTimer, self).__init__(callback, interval)
-        self.stop()
+        super().__init__(callback, interval)
         self.count = 0
         self.end = 0
 
+    def reset(self):
+        self.count = 0
+        self.end = 0
+
+    def start(self):
+        self.reset()
+        super().start()
+
+    def stop(self):
+        super().stop()
+        self.reset()
 
 class Alfred(rumps.App):
     def __init__(self):
@@ -94,63 +126,27 @@ class Alfred(rumps.App):
         subprocess.run(['open', f'assets/{shortcut_name}.shortcut'])
 
 
-class Mode:
-    def __init__(self, timer: SessionTimer):
-        self.timer = timer
-
-
-    def enable_focus(self, session_length):
-        """Set Focus for X minutes"""
-        self.set_dnd(FocusState.ON, session_length)
-        self.toggle_dock()
-        self.timer.end = session_length * 60
-        self.timer.start()
-
-
-    def disable_focus(self):
-        self.set_dnd(FocusState.OFF, 0)
-        self.toggle_dock()
-        self.timer.count = 0
-
-
-    def set_dnd(self, status: FocusState, length: int):
-        if status == FocusState.ON:
-            shortcut_cmd = f'shortcuts run {shortcut_name} <<< "on {length}"'
-        else:
-            shortcut_cmd = f'shortcuts run {shortcut_name} <<< "off"'
-
-        subprocess.run(shortcut_cmd, shell=True)
-
-
-    def toggle_dock(self):
-        subprocess.run(
-            ['osascript', '-e', 'tell application "System Events" to set autohide of dock preferences to not (autohide of dock preferences)']
-        )
-
-
-class FocusMode(Mode):
+class FocusMode:
     def __init__(self, timer: SessionTimer, alfred: Alfred):
-        super().__init__(timer)
+        self.timer = timer
         self.alfred = alfred
-        self.timer.set_callback(self.on_tick)
+        self.focus_manager = FocusManager()
+        self.timer.callback = self.on_tick
 
-    
     def start_focus(self, length):
-        self.enable_focus(length)
+        self.focus_manager.enable_focus(length)
         self.alfred.time_left.hidden = False
         self.alfred.end_focus.set_callback(self.end_focus)
         for item in self.alfred.focus_options:
             item.set_callback(None) if item is not None else None
 
-
     def end_focus(self, sender=None):
         self.timer.stop()
-        self.disable_focus()
+        self.focus_manager.disable_focus()
         self.alfred.time_left.hidden = True
         self.alfred.end_focus.set_callback(None)
         for item in self.alfred.focus_options:
             item.set_callback(callback=lambda _, length=item.length: self.start_focus(length)) if item is not None else None
-
 
     def on_tick(self, sender):
         sender.count += 1
@@ -163,35 +159,35 @@ class FocusMode(Mode):
             self.end_focus()
 
 
-class PomodoroMode(Mode):
+class PomodoroMode:
     def __init__(self, timer: SessionTimer, alfred: Alfred):
-        super().__init__(timer)
+        self.timer = timer
         self.alfred = alfred
-        self.timer.set_callback(self.on_tick)
+        self.focus_manager = FocusManager()
+        self.timer.callback = self.on_tick
         self.sessions_completed = 0
         self.sessions_length = 0
         self.break_length = 0
         self.is_break_time = False
-
 
     def init_pomodoro(self, _):
         # Set Pomodoro
         pom_vals = {
             'pom_length': {
                 'message': 'How long would you like your sessions to be? (in minutes)',
-                'title': 'Sessions Length',
+                'title': 'Session Length',
                 'default_text': '25',
                 'val': 0
             },
             'pom_sessions': {
-                'message': 'How many sessions would you like to do? (in minutes)',
-                'title': 'Set Sessions',
+                'message': 'How many sessions would you like to do?',
+                'title': 'Number of Sessions',
                 'default_text': '5',
                 'val': 0
             },
             'pom_break': {
                 'message': 'How long would you like your break to be? (in minutes)',
-                'title': 'Set Break',
+                'title': 'Break Length',
                 'default_text': '10',
                 'val': 0
             }
@@ -212,47 +208,50 @@ class PomodoroMode(Mode):
         self.break_length = pom_vals['pom_break']['val']
         self.enable()
 
-
-    def start_focus(self):
-        self.enable_focus(self.sessions_length)
+    def enable(self):
+        if not self.is_break_time:
+            self.focus_manager.enable_focus(self.sessions_length)
+        else:
+            self.focus_manager.disable_focus()
+        
         self.alfred.time_left.hidden = False
-        self.alfred.sessions_left.title = f'Sessions Left: {self.sessions_left}'
+        self.alfred.sessions_left.title = f'Sessions Left: {self.sessions_left - self.sessions_completed}'
         self.alfred.sessions_left.hidden = False
         self.alfred.pomodoro_end.set_callback(self.end_focus)
         self.alfred.pomodoro_start.set_callback(None)
 
+        session_duration = self.sessions_length if not self.is_break_time else self.break_length
+        self.timer.end = session_duration * 60
+        self.timer.start()
 
     def end_focus(self, sender=None):
-        self.disable_focus()
+        self.timer.stop()
+        self.focus_manager.disable_focus()
         self.alfred.time_left.hidden = True
         self.alfred.sessions_left.hidden = True
         self.alfred.pomodoro_end.set_callback(None)
-
+        self.alfred.pomodoro_start.set_callback(self.init_pomodoro)
 
     def on_tick(self, sender):
         sender.count += 1
         time_left = sender.end - sender.count
         mins, secs = divmod(time_left, 60)
 
-        self.alfred.time_left.title = f'{"Break" if self.is_break_time else "Focus"} Time Left: {"< 1" if (mins <= 0) & (secs >=0) else mins} min'
+        mode_label = "Break" if self.is_break_time else "Focus"
+        self.alfred.time_left.title = f'{mode_label} Time Left: {"< 1" if (mins <= 0) & (secs >=0) else mins} min'
 
         if sender.count == sender.end:
-            if (self.is_break_time) & (self.sessions_left > 0):
-                self.sessions_left -= 1
-                self.alfred.sessions_left.title = f'Sessions Left: {self.sessions_left}'
-                self.is_break_time = False
-                sender.count = 0
-                self.enable()
-            elif self.sessions_left > 0:
-                self.is_break_time = True
-                self.disable()
-                self.alfred.time_left.hidden = False
-                self.alfred.sessions_left.hidden = False
+            if self.is_break_time:
+                self.sessions_completed += 1
+                if self.sessions_completed >= self.sessions_left:
+                    self.end_focus()
+                else:
+                    self.is_break_time = False
+                    self.enable()
             else:
-                self.disable()
-                self.timer.stop()
-                
-
+                self.is_break_time = True
+                self.enable()
 
 if __name__ == "__main__":
+    shortcut_name = 'alfred-focus-mode'  # Define your shortcut name here
     Alfred().run()
