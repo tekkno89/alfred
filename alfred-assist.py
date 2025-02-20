@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 from __future__ import annotations  # Enables automatic forward references
-import os
 import rumps
 import subprocess
 from enum import Enum
@@ -58,7 +57,7 @@ class FocusTimer:
         
         self.is_running = True
         enable_focus(duration)
-        self.app.disable_menu_items()
+        self.app.disable_focus_menu()
         self.timer = rumps.Timer(self.run_focus, 1)
         self.timer.start()
         self.app.menu.insert_after('Focus', self.end_focus)
@@ -73,7 +72,7 @@ class FocusTimer:
         disable_focus()
         del self.app.menu['Time Left']
         del self.app.menu['End Focus']
-        self.app.enable_menu_items()
+        self.app.enable_focus_menu()
         
 
     def run_focus(self, sender):
@@ -87,6 +86,96 @@ class FocusTimer:
             self.time_left_msg.title = f'Time Left: < 1 min'
         else:
             self.time_left_msg.title = f'Time Left: {mins} min'
+
+
+class PomodoroTimer:
+    def __init__(self, app: Alfred):
+        self.work_duration = 0
+        self.break_duration = 0
+        self.total_sessions = 0
+        self.is_work_period = True
+        self.current_session = 0
+        self.remaining_time = 0
+        self.is_running = False
+        self.timer = None
+        self.app = app
+
+
+    def pomodoro_init(self):
+        pom_vals = {
+            'pom_length': {
+                'message': 'How long would you like your sessions to be? (in minutes)',
+                'title': 'Session Length',
+                'default_text': '25',
+                'val': 0
+            },
+            'pom_sessions': {
+                'message': 'How many sessions would you like to do?',
+                'title': 'Number of Sessions',
+                'default_text': '5',
+                'val': 0
+            },
+            'pom_break': {
+                'message': 'How long would you like your break to be? (in minutes)',
+                'title': 'Break Length',
+                'default_text': '10',
+                'val': 0
+            }
+        }
+
+        for pom in pom_vals:
+            while pom_vals[pom]['val'] <= 0:
+                pom_vals[pom]['val'] = int(rumps.Window(
+                    message=pom_vals[pom]['message'], 
+                    title=pom_vals[pom]['title'], 
+                    default_text=pom_vals[pom]['default_text'], 
+                    dimensions=(50,20), 
+                    ok='Set', 
+                    cancel='Cancel').run().text)
+                
+        self.total_sessions = pom_vals['pom_sessions']['val']
+        self.work_duration = pom_vals['pom_length']['val'] * 60
+        self.break_duration = pom_vals['pom_break']['val'] * 60
+        self.remaining_time = pom_vals['pom_length']['val'] * 60 
+
+
+    def start(self, sender=None):
+        self.pomodoro_init()
+        if self.is_running:
+            return
+        self.is_running = True
+        self.timer = rumps.Timer(self.run_pomodoro, 1)
+        self.timer.start()
+        enable_focus(self.work_duration)
+        print("Pomodoro Mode started!")
+
+
+    def stop(self):
+        if self.timer:
+            self.timer.stop()
+        self.is_running = False
+        disable_focus()
+        print("Pomodoro Mode ended!")
+
+
+    def run_pomodoro(self, sender):
+        self.remaining_time -= 1
+        if self.remaining_time <= 0:
+            # Check if session is complete
+            if self.is_work_period:
+                self.current_session += 1
+                if self.current_session >= self.total_sessions:
+                    self.stop()
+                    rumps.notification("Pomodoro Complete", "All sessions are done!", "")
+                    return
+                
+            self.is_work_period = not self.is_work_period
+            self.remaining_time = self.work_duration if self.is_work_period else self.break_duration
+            
+            if self.is_work_period:
+                enable_focus(self.work_duration)
+            else:
+                disable_focus()
 
 
 class Alfred(rumps.App):
@@ -118,20 +207,22 @@ class Alfred(rumps.App):
                 self.focus_options.append(None)
 
         self.focus_submenu = [*self.focus_options]
+        self.pomodoro_mode = rumps.MenuItem('Start Pomodoro', callback=PomodoroTimer(self).start)
 
         self.menu = [
             {'Focus': self.focus_submenu},
+            self.pomodoro_mode
         ]
 
 
-    def disable_menu_items(self):
+    def disable_focus_menu(self):
         """Disable focus menu items while a focus session is running."""
         for item in self.focus_options:
             if isinstance(item, rumps.MenuItem):
                 item.set_callback(None)
 
 
-    def enable_menu_items(self):
+    def enable_focus_menu(self):
         """Re-enable focus menu items when the session ends."""
         for item in self.focus_options:
             if isinstance(item, rumps.MenuItem):
