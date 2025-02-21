@@ -6,15 +6,18 @@ Usage:
 """
 
 from setuptools import setup
+import os
+
+os.environ["MACOSX_DEPLOYMENT_TARGET"] = "14.0"
 
 APP = ['alfred-assist.py']
 OPTIONS = {
     'iconfile': 'assets/alfred-assist.icns',
-    'argv_emulation': True,
     'plist': {
         'LSUIElement': True,
     },
     'packages': ['rumps'],
+    'excludes': ['Carbon']
 }
 
 setup(
