@@ -58,6 +58,7 @@ class FocusTimer:
         self.is_running = True
         enable_focus(duration)
         self.app.disable_focus_menu()
+        self.app.disable_pomodoro()
         self.timer = rumps.Timer(self.run_focus, 1)
         self.timer.start()
         self.app.menu.insert_after('Focus', self.end_focus)
@@ -73,6 +74,7 @@ class FocusTimer:
         del self.app.menu['Time Left']
         del self.app.menu['End Focus']
         self.app.enable_focus_menu()
+        self.app.enable_pomodoro()
         
 
     def run_focus(self, sender):
@@ -99,6 +101,16 @@ class PomodoroTimer:
         self.is_running = False
         self.timer = None
         self.app = app
+        self.end_pomodoro = rumps.MenuItem('End Pomodoro', callback=self.stop)
+        self.time_left_msg = rumps.MenuItem('Time Left')
+        self.session_mode_msg = rumps.MenuItem('Session Mode')
+        self.session_count_msg = rumps.MenuItem('Sessions')
+        self.pomodoro_menu_items = [
+            self.end_pomodoro.title,
+            self.time_left_msg.title,
+            self.session_mode_msg.title,
+            self.session_count_msg.title
+        ]
 
 
     def pomodoro_init(self):
@@ -146,27 +158,47 @@ class PomodoroTimer:
         self.is_running = True
         self.timer = rumps.Timer(self.run_pomodoro, 1)
         self.timer.start()
+        self.app.disable_focus_menu()
         enable_focus(self.work_duration)
+
+        self.app.menu.insert_after('Start Pomodoro', self.end_pomodoro)
+        self.app.menu.insert_after('End Pomodoro', self.session_mode_msg)
+        self.app.menu.insert_after('Session Mode', self.time_left_msg)
+        self.app.menu.insert_after('Time Left', self.session_count_msg)
+        self.session_count_msg.title = f'Sessions Complete: {self.current_session}/{self.total_sessions}'
+        self.session_mode_msg.title = f'Mode: Focus'
+
+        self.app.disable_pomodoro()
         print("Pomodoro Mode started!")
 
 
-    def stop(self):
+    def stop(self, sender=None):
         if self.timer:
             self.timer.stop()
         self.is_running = False
+        self.app.enable_focus_menu()
+        
+        for item in self.pomodoro_menu_items:
+            del self.app.menu[item]
+
+        self.app.enable_pomodoro()
         disable_focus()
         print("Pomodoro Mode ended!")
 
 
     def run_pomodoro(self, sender):
         self.remaining_time -= 1
+        mins, secs = divmod(self.remaining_time, 60)
+        self.time_left_msg.title = f'Time Left: {mins}:{secs}'
+
         if self.remaining_time <= 0:
             # Check if session is complete
             if self.is_work_period:
                 self.current_session += 1
+                self.session_count_msg.title = f'Sessions Complete: {self.current_session}/{self.total_sessions}'
                 if self.current_session >= self.total_sessions:
                     self.stop()
-                    rumps.notification("Pomodoro Complete", "All sessions are done!", "")
+                    rumps.notification("Pomodoro Complete", "All sessions are done!", "", icon='assets/alfred-assist.icns')
                     return
                 
             self.is_work_period = not self.is_work_period
@@ -174,8 +206,11 @@ class PomodoroTimer:
             
             if self.is_work_period:
                 enable_focus(self.work_duration)
+                self.session_mode_msg.title = 'Mode: Focus'
             else:
                 disable_focus()
+                self.session_mode_msg.title = 'Mode: Break'
+
 
 
 class Alfred(rumps.App):
@@ -228,6 +263,14 @@ class Alfred(rumps.App):
             if isinstance(item, rumps.MenuItem):
                 length = int(item.title.split()[0])
                 item.set_callback(lambda _, length=length: FocusTimer(self).start(length * 60))  # `state=False` makes it clickable again
+
+
+    def disable_pomodoro(self):
+        self.pomodoro_mode.set_callback(None)
+
+
+    def enable_pomodoro(self):
+        self.pomodoro_mode.set_callback(callback=PomodoroTimer(self).start)
             
         
     # Make sure the short cut is installed, have to use this method for osx 13
